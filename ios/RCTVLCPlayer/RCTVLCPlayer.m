@@ -3,6 +3,8 @@
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventDispatcher.h>
 #import <React/UIView+React.h>
+#import <MediaPlayer/MediaPlayer.h>
+#import <ActivityKit/ActivityKit.h>
 #if TARGET_OS_TV
 #import <TVVLCKit/TVVLCKit.h>
 #else
@@ -16,6 +18,7 @@ static NSString *const readyForDisplayKeyPath = @"readyForDisplay";
 static NSString *const playbackRate = @"rate";
 
 
+
 #if !defined(DEBUG) || !(TARGET_IPHONE_SIMULATOR)
 //#define NSLog(...)
 #endif
@@ -24,6 +27,10 @@ static NSString *const playbackRate = @"rate";
 @implementation RCTVLCPlayer
 {
     
+    NSString *subtitleFontName;
+    NSString *subtitleFontSize;
+    NSString *subtitleFontColor;
+    NSString *subtitleFontBold;
     /* Required to publish events */
     RCTEventDispatcher *_eventDispatcher;
     VLCMediaPlayer *_player;
@@ -36,10 +43,15 @@ static NSString *const playbackRate = @"rate";
     NSDictionary * _videoInfo;
 }
 
+
 - (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher
 {
     if ((self = [super init])) {
         _eventDispatcher = eventDispatcher;
+        
+        // Initialize the Now Playing Info Center
+//        _nowPlayingInfoCenter = [MPNowPlayingInfoCenter defaultCenter];
+//        _commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
         
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(applicationWillResignActive:)
@@ -50,11 +62,7 @@ static NSString *const playbackRate = @"rate";
                                                  selector:@selector(applicationWillEnterForeground:)
                                                      name:UIApplicationWillEnterForegroundNotification
                                                    object:nil];
-        
     }
-    
-    
-    
     return self;
 }
 
@@ -92,6 +100,7 @@ static NSString *const playbackRate = @"rate";
 -(void)play
 {
     if(_player) {
+        _player.audioChannel = self.currentAudioChannel;
         [_player play];
         _paused = NO;
         _started = YES;
@@ -100,14 +109,9 @@ static NSString *const playbackRate = @"rate";
 
 -(void)setResume:(BOOL)autoplay
 {
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(mediaDidFinish)
-                                                 name:VLCMediaPlayerStateToString(VLCMediaPlayerStateEnded)
-                                               object:_player];
     if(_player){
         [self _release];
     }
-    // [bavv edit start]
     NSString* uri    = [_source objectForKey:@"uri"];
     NSURL* _uri    = [NSURL URLWithString:uri];
     NSDictionary* initOptions = [_source objectForKey:@"initOptions"];
@@ -127,27 +131,22 @@ static NSString *const playbackRate = @"rate";
     _player.media = media;
     _player.media.delegate = self;
     
-    // Create a console logger
     [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
     NSLog(@"autoplay: %i",autoplay);
 }
-- (void)mediaDidFinish {
-    NSLog(@"Media finished playing.");
-    // Handle the end of the video
-    //
-}
+
 
 -(void)setSource:(NSDictionary *)source
 {
+    [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     NSNumber *savedAudioChannel = [defaults objectForKey:@"savedAudioChannel"];
     if (savedAudioChannel) {
         self.currentAudioChannel = [savedAudioChannel intValue];
     } else {
-        // Set default audio channel if nothing is saved
-        self.currentAudioChannel = 1;  // Or whatever default makes sense
+        self.currentAudioChannel = -1;
     }
-    if(_player) {
+    if (_player) {
         [self _release];
     }
     _source = source;
@@ -162,18 +161,26 @@ static NSString *const playbackRate = @"rate";
     
     VLCMedia *media = [VLCMedia mediaWithURL:_uri];
     for (NSString* option in initOptions) {
+        // extract subtitle options
+        if ([option hasPrefix:@"--subtitle-font-name="]) {
+            subtitleFontName = [[option componentsSeparatedByString:@"="] lastObject];
+        } else if ([option hasPrefix:@"--subtitle-font-size="]) {
+            subtitleFontSize = [[option componentsSeparatedByString:@"="] lastObject];
+        } else if ([option hasPrefix:@"--subtitle-font-color="]) {
+            subtitleFontColor = [[option componentsSeparatedByString:@"="] lastObject];
+        } else if ([option hasPrefix:@"--subtitle-font-bold="]) {
+            NSString *boldValue = [[option componentsSeparatedByString:@"="] lastObject];
+            subtitleFontBold = [boldValue isEqualToString:@"YES"] ? @"YES" : @"NO";
+        }
+        
         NSLog(@"Options is %@",option);
+        // set audio channels
         if ([option isKindOfClass:[NSString class]] && [option hasPrefix:@"--audio-channel-mode="]) {
             NSString *value = [[option componentsSeparatedByString:@"="] lastObject];
             int audioChannel = [value intValue];
-            
-            // Only update if value has changed
-            //               if (audioChannel != self.currentAudioChannel) {
             self.currentAudioChannel = audioChannel;
-            // Save the updated audio channel in NSUserDefaults
             [defaults setInteger:self.currentAudioChannel forKey:@"savedAudioChannel"];
             [defaults synchronize];
-            //               }
         }
         [media addOption:[option stringByReplacingOccurrencesOfString:@"--" withString:@""]];
     }
@@ -181,13 +188,55 @@ static NSString *const playbackRate = @"rate";
     
     _player.media = media;
     _player.media.delegate = self;
+    if (!subtitleFontName || [subtitleFontName isEqualToString:@""]) {
+        subtitleFontName = @"HelveticaNeue";
+    }
+    
+    if (!subtitleFontSize || [subtitleFontSize isEqualToString:@""]) {
+        subtitleFontSize = @"16";
+    }
+    
+    if (!subtitleFontColor || [subtitleFontColor isEqualToString:@""]) {
+        subtitleFontColor = @"16777215";
+    }
+    
+    if (!subtitleFontBold || [subtitleFontBold isEqualToString:@""]) {
+        subtitleFontBold = @"NO";
+    }
     [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
-    NSLog(@"autoplay: %i",autoplay);
     if (_subtitleUri && !([_subtitleUri  isEqual: @""]) && _player) {
         [_player addPlaybackSlave:_subtitleUri type:VLCMediaPlaybackSlaveTypeSubtitle enforce:YES];
     }
+    // set subtitle setting to player
+    if (_player) {
+        [_player performSelector:@selector(setTextRendererFont:) withObject:subtitleFontName];
+        [_player performSelector:@selector(setTextRendererFontSize:) withObject:subtitleFontSize];
+        [_player performSelector:@selector(setTextRendererFontColor:) withObject:subtitleFontColor];
+        [_player performSelector:@selector(setTextRendererFontForceBold:) withObject:subtitleFontBold];
+    }
     [self play];
 }
+
+//- (void)observeValueForKeyPath:(NSString *)keyPath
+//                      ofObject:(id)object
+//                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
+//                       context:(void *)context {
+//    if ([keyPath isEqualToString:@"state"]) {
+//        VLCMediaPlayerState oldState = [change[NSKeyValueChangeOldKey] intValue];
+//        VLCMediaPlayerState newState = [change[NSKeyValueChangeNewKey] intValue];
+//        
+//        // Handle the state change here
+//        NSLog(@"Media player state changed from %d to %d", oldState, newState);
+//    } else if ([keyPath isEqualToString:@"remainingTime"]) {
+//        NSLog(@"Media player -- remainingTime %d", [change[NSKeyValueChangeOldKey] intValue]);
+//    } else if ([keyPath isEqualToString:@"position"]) {
+//        NSLog(@"Media player -- position from %d", [change[NSKeyValueChangeOldKey] intValue]);
+//    }
+//    
+//    else {
+//        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+//    }
+//}
 
 - (void)setSubtitleUri:(NSString *)subtitleUri
 {
@@ -207,6 +256,7 @@ static NSString *const playbackRate = @"rate";
 - (void)mediaPlayerTimeChanged:(NSNotification *)aNotification
 {
     [self updateVideoProgress];
+    //    [self updateNowPlayingInfo];
 }
 
 - (void)mediaPlayerStateChanged:(NSNotification *)aNotification
@@ -235,12 +285,15 @@ static NSString *const playbackRate = @"rate";
                     @"target": self.reactTag
                 });
                 break;
+                
+                //            case VLCMediaPlayerStateStopping:
+                //                NSLog(@"VLCMediaPlayerStateStopping %i", _player.numberOfAudioTracks);
             case VLCMediaPlayerStateBuffering:
                 NSLog(@"VLCMediaPlayerStateBuffering %i", _player.numberOfAudioTracks);
                 if(!_videoInfo && _player.numberOfAudioTracks > 0) {
                     _videoInfo = [self getVideoInfo];
                     if (_player.audioChannel != self.currentAudioChannel) {
-                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
                             self->_player.audioChannel = self.currentAudioChannel;
                         });
                     }
@@ -430,7 +483,6 @@ static NSString *const playbackRate = @"rate";
 
 - (void)_release
 {
-    //    dispatch_async(dispatch_get_main_queue(), ^{
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     
     if (_player.media)
@@ -440,8 +492,6 @@ static NSString *const playbackRate = @"rate";
         _player = nil;
     
     _eventDispatcher = nil;
-    //    });
-    
 }
 
 
@@ -449,12 +499,9 @@ static NSString *const playbackRate = @"rate";
 #pragma mark - Lifecycle
 - (void)removeFromSuperview
 {
-    //    dispatch_async(dispatch_get_main_queue(), ^{
     NSLog(@"removeFromSuperview");
     [self _release];
     [super removeFromSuperview];
-    //    });
-    
 }
 
 @end

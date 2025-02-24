@@ -191,6 +191,27 @@ Callback props take a function that gets fired on various player events:
 | `onError`      | Called when an error occurs whilst attempting to play media                                                                                                                                                          |
 | `onLoad`       | Called when video info is loaded, Callback containing VideoInfo                                                                                                                                                      |
 
+
+Custom Subtitle Options
+
+Available Subtitle Style Options
+Subtitle Font Name: Set the font name for the subtitles using the --subtitle-font-name option. Pass the font name string to apply.
+Subtitle Font Size: Adjust the subtitle font size with the --subtitle-font-size option. Specify a numeric value (e.g., 20).
+Subtitle Font Color: Change the color of the subtitle text using the --subtitle-font-color option. Provide the color as a numeric value (e.g., 16711680 for red).
+Subtitle Font Bold: Make the subtitle font bold with the --subtitle-font-bold option (e.g., YES).
+
+Example:
+    <VLCPlayer
+  source={{ uri: 'https://your-video-url.mp4' }}
+  initOptions={[
+    `--subtitle-font-name=${subtitleFontName.split('<>')[1]}`, // Custom font name
+    '--subtitle-font-size=20',                                 // Font size
+    `--subtitle-font-color=${subtitleFontColor}`,               // Custom font color
+    '--subtitle-font-bold=YES'                                  // Enable bold text
+  ]}
+/>
+
+
 VideoInfo example:
 
 ```
