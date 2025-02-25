@@ -50,8 +50,8 @@ static NSString *const playbackRate = @"rate";
         _eventDispatcher = eventDispatcher;
         
         // Initialize the Now Playing Info Center
-//        _nowPlayingInfoCenter = [MPNowPlayingInfoCenter defaultCenter];
-//        _commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
+        //        _nowPlayingInfoCenter = [MPNowPlayingInfoCenter defaultCenter];
+        //        _commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
         
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(applicationWillResignActive:)
@@ -100,7 +100,6 @@ static NSString *const playbackRate = @"rate";
 -(void)play
 {
     if(_player) {
-        _player.audioChannel = self.currentAudioChannel;
         [_player play];
         _paused = NO;
         _started = YES;
@@ -132,13 +131,11 @@ static NSString *const playbackRate = @"rate";
     _player.media.delegate = self;
     
     [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
-    NSLog(@"autoplay: %i",autoplay);
 }
 
 
 -(void)setSource:(NSDictionary *)source
 {
-    [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     NSNumber *savedAudioChannel = [defaults objectForKey:@"savedAudioChannel"];
     if (savedAudioChannel) {
@@ -146,97 +143,84 @@ static NSString *const playbackRate = @"rate";
     } else {
         self.currentAudioChannel = -1;
     }
-    if (_player) {
-        [self _release];
-    }
-    _source = source;
-    _videoInfo = nil;
+    
     NSString* uri    = [source objectForKey:@"uri"];
-    BOOL    autoplay = [RCTConvert BOOL:[source objectForKey:@"autoplay"]];
+    NSString *subtitleColor = [source objectForKey:@"subtitle-font-color"];
+    NSString *subtitleFontName = [source objectForKey:@"subtitle-font-name"];
+    NSString *subtitleFontSize = [source objectForKey:@"subtitle-font-size"];
+    NSString *subtitleFontBold = [source objectForKey:@"subtitle-font-bold"];
+    NSString *subtitleDelay = [source objectForKey:@"sub-delay"];
+    NSString *audioDelay = [source objectForKey:@"audio-desync"];
+    NSString *audioChannelMode = [source objectForKey:@"audio-channel-mode"];
+    
+    
+    
+    
     NSURL* _uri    = [NSURL URLWithString:uri];
     NSDictionary* initOptions = [source objectForKey:@"initOptions"];
-    _player = [[VLCMediaPlayer alloc] init];
-    [_player setDrawable:self];
-    _player.delegate = self;
     
     VLCMedia *media = [VLCMedia mediaWithURL:_uri];
-    for (NSString* option in initOptions) {
-        // extract subtitle options
-        if ([option hasPrefix:@"--subtitle-font-name="]) {
-            subtitleFontName = [[option componentsSeparatedByString:@"="] lastObject];
-        } else if ([option hasPrefix:@"--subtitle-font-size="]) {
-            subtitleFontSize = [[option componentsSeparatedByString:@"="] lastObject];
-        } else if ([option hasPrefix:@"--subtitle-font-color="]) {
-            subtitleFontColor = [[option componentsSeparatedByString:@"="] lastObject];
-        } else if ([option hasPrefix:@"--subtitle-font-bold="]) {
-            NSString *boldValue = [[option componentsSeparatedByString:@"="] lastObject];
-            subtitleFontBold = [boldValue isEqualToString:@"YES"] ? @"YES" : @"NO";
-        }
-        
-        NSLog(@"Options is %@",option);
-        // set audio channels
-        if ([option isKindOfClass:[NSString class]] && [option hasPrefix:@"--audio-channel-mode="]) {
-            NSString *value = [[option componentsSeparatedByString:@"="] lastObject];
-            int audioChannel = [value intValue];
-            self.currentAudioChannel = audioChannel;
-            [defaults setInteger:self.currentAudioChannel forKey:@"savedAudioChannel"];
-            [defaults synchronize];
-        }
-        [media addOption:[option stringByReplacingOccurrencesOfString:@"--" withString:@""]];
+    
+    if ([_player.media.url.absoluteString isEqualToString:uri]) {
+        media = _player.media;
     }
-    NSLog(@"Audio Channel current %i",self.currentAudioChannel);
+    else {
+        if (_player) {
+            [self _release];
+            _player = nil;
+        }
+        _source = source;
+        _videoInfo = nil;
+        
+        _player = [[VLCMediaPlayer alloc] init];
+        [_player setDrawable:self];
+        _player.delegate = self;
+        for (NSString* option in initOptions) { 
+            [media addOption:option];
+        }
+//        for (NSString* option in initOptions) {
+//            // extract subtitle options
+//            if ([option hasPrefix:@"--subtitle-font-name="]) {
+//                subtitleFontName = [[option componentsSeparatedByString:@"="] lastObject];
+//            } else if ([option hasPrefix:@"--subtitle-font-size="]) {
+//                subtitleFontSize = [[option componentsSeparatedByString:@"="] lastObject];
+//            } else if ([option hasPrefix:@"--subtitle-font-color="]) {
+//                subtitleFontColor = [[option componentsSeparatedByString:@"="] lastObject];
+//            } else if ([option hasPrefix:@"--subtitle-font-bold="]) {
+//                NSString *boldValue = [[option componentsSeparatedByString:@"="] lastObject];
+//                subtitleFontBold = [boldValue.uppercaseString isEqualToString:@"TRUE"] ? @"YES" : @"NO";
+//            }
+//            
+//            NSLog(@"Options is %@",option);
+//            // set audio channels
+//            if ([option isKindOfClass:[NSString class]] && [option hasPrefix:@"--audio-channel-mode="]) {
+//                NSString *value = [[option componentsSeparatedByString:@"="] lastObject];
+//                int audioChannel = [value intValue];
+//                self.currentAudioChannel = audioChannel;
+//                [defaults setInteger:self.currentAudioChannel forKey:@"savedAudioChannel"];
+//                [defaults synchronize];
+//            }
+//    //        [media option]
+//            [media addOption:[option stringByReplacingOccurrencesOfString:@"--" withString:@""]];
+//            
+//        }
+        
+    }
     
     _player.media = media;
     _player.media.delegate = self;
-    if (!subtitleFontName || [subtitleFontName isEqualToString:@""]) {
-        subtitleFontName = @"HelveticaNeue";
-    }
-    
-    if (!subtitleFontSize || [subtitleFontSize isEqualToString:@""]) {
-        subtitleFontSize = @"16";
-    }
-    
-    if (!subtitleFontColor || [subtitleFontColor isEqualToString:@""]) {
-        subtitleFontColor = @"16777215";
-    }
-    
-    if (!subtitleFontBold || [subtitleFontBold isEqualToString:@""]) {
-        subtitleFontBold = @"NO";
-    }
     [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
-    if (_subtitleUri && !([_subtitleUri  isEqual: @""]) && _player) {
-        [_player addPlaybackSlave:_subtitleUri type:VLCMediaPlaybackSlaveTypeSubtitle enforce:YES];
-    }
-    // set subtitle setting to player
     if (_player) {
         [_player performSelector:@selector(setTextRendererFont:) withObject:subtitleFontName];
         [_player performSelector:@selector(setTextRendererFontSize:) withObject:subtitleFontSize];
-        [_player performSelector:@selector(setTextRendererFontColor:) withObject:subtitleFontColor];
+        [_player performSelector:@selector(setTextRendererFontColor:) withObject:subtitleColor];
         [_player performSelector:@selector(setTextRendererFontForceBold:) withObject:subtitleFontBold];
+    }
+    if (_subtitleUri && !([_subtitleUri  isEqual: @""]) && _player) {
+//        [_player addPlaybackSlave:_subtitleUri type:VLCMediaPlaybackSlaveTypeSubtitle enforce:YES];
     }
     [self play];
 }
-
-//- (void)observeValueForKeyPath:(NSString *)keyPath
-//                      ofObject:(id)object
-//                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
-//                       context:(void *)context {
-//    if ([keyPath isEqualToString:@"state"]) {
-//        VLCMediaPlayerState oldState = [change[NSKeyValueChangeOldKey] intValue];
-//        VLCMediaPlayerState newState = [change[NSKeyValueChangeNewKey] intValue];
-//        
-//        // Handle the state change here
-//        NSLog(@"Media player state changed from %d to %d", oldState, newState);
-//    } else if ([keyPath isEqualToString:@"remainingTime"]) {
-//        NSLog(@"Media player -- remainingTime %d", [change[NSKeyValueChangeOldKey] intValue]);
-//    } else if ([keyPath isEqualToString:@"position"]) {
-//        NSLog(@"Media player -- position from %d", [change[NSKeyValueChangeOldKey] intValue]);
-//    }
-//    
-//    else {
-//        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-//    }
-//}
 
 - (void)setSubtitleUri:(NSString *)subtitleUri
 {
@@ -252,7 +236,7 @@ static NSString *const playbackRate = @"rate";
 // ==== player delegate methods ===
 
 
-
+#pragma Player Dele
 - (void)mediaPlayerTimeChanged:(NSNotification *)aNotification
 {
     [self updateVideoProgress];
@@ -433,6 +417,36 @@ static NSString *const playbackRate = @"rate";
         }
     }
 }
+
+
+
+
+
+-(void)setJumpBackwardDuration:(NSString*)pos
+{
+    NSLog(@"jumpBackwardDuration");
+}
+
+-(void)setSubtitleColor:(NSString*)color
+{
+    NSLog(@"setSubtitleColor");
+}
+
+-(void)setSubtitleFont:(NSString*)font
+{
+    NSLog(@"setSubtitleFont");
+}
+
+-(void)setSubtitleFontSize:(NSString*)size
+{
+    NSLog(@"setSubtitleFontSize");
+}
+
+-(void)setSubtitleFontBold:(BOOL)bold
+{
+    NSLog(@"setSubtitleFontBold");
+}
+
 
 -(void)setSnapshotPath:(NSString*)path
 {
