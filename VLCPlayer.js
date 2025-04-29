@@ -4,16 +4,33 @@ import ReactNative from "react-native";
 const { Component } = React;
 
 import PropTypes from "prop-types";
+import resolveAssetSource from "react-native/Libraries/Image/resolveAssetSource";
 
 const { StyleSheet, requireNativeComponent, NativeModules, View } = ReactNative;
-import resolveAssetSource from "react-native/Libraries/Image/resolveAssetSource";
 
 export default class VLCPlayer extends Component {
   constructor(props, context) {
     super(props, context);
+    this.jumpBackwardDuration = this.jumpBackwardDuration.bind(this);
+    this.subtitleColor = this.subtitleColor.bind(this);
+    this.subtitleFont = this.subtitleFont.bind(this);
+    this.subtitleFontBold = this.subtitleFontBold.bind(this);
+    this.subtitleFontSize = this.subtitleFontSize.bind(this);
+    this.subtitleDelay = this.subtitleDelay.bind(this);
+    this.audioDelay = this.audioDelay.bind(this);
+    this.subtitleEncoding = this.subtitleEncoding.bind(this);
+    this.audioChannel = this.audioChannel.bind(this);
+    this.contrast = this.contrast.bind(this);
+    this.brightness = this.brightness.bind(this);
+    this.hue = this.hue.bind(this);
+    this.saturation = this.saturation.bind(this);
+    this.gamma = this.gamma.bind(this);
     this.seek = this.seek.bind(this);
+    this.replayMedia = this.replayMedia.bind(this);
     this.resume = this.resume.bind(this);
     this.snapshot = this.snapshot.bind(this);
+    this.startRecording = this.startRecording.bind(this);
+    this.stopRecording = this.stopRecording.bind(this);
     this._assignRoot = this._assignRoot.bind(this);
     this._onError = this._onError.bind(this);
     this._onProgress = this._onProgress.bind(this);
@@ -25,6 +42,9 @@ export default class VLCPlayer extends Component {
     this._onOpen = this._onOpen.bind(this);
     this._onLoadStart = this._onLoadStart.bind(this);
     this._onLoad = this._onLoad.bind(this);
+    this._onSnapshotCapture = this._onSnapshotCapture.bind(this);
+    this._onVideoRecorded = this._onVideoRecorded.bind(this);
+    this._onRecordingStart = this._onRecordingStart.bind(this);
     this.changeVideoAspectRatio = this.changeVideoAspectRatio.bind(this);
   }
   static defaultProps = {
@@ -36,6 +56,7 @@ export default class VLCPlayer extends Component {
   }
 
   seek(pos) {
+    console.log(447, "in VLC for")
     this.setNativeProps({ seek: pos });
   }
 
@@ -43,8 +64,60 @@ export default class VLCPlayer extends Component {
     this.setNativeProps({ resume: isResume });
   }
 
+  startRecording(path) {
+    this.setNativeProps({ startRecordingAtPath: path });
+  }
+
+  replayMedia(pos) {
+    this.setNativeProps({ replayMedia: pos });
+  }
+
+  stopRecording(isStop) {
+    this.setNativeProps({ stopRecording: isStop });
+  }
+
   snapshot(path) {
     this.setNativeProps({ snapshotPath: path });
+  }
+
+  jumpForwardDuration(duration) {
+    this.setNativeProps({ jumpForwardDuration: duration });
+  }
+
+  jumpBackwardDuration(duration) {
+    this.setNativeProps({ jumpBackwardDuration: duration });
+  }
+
+  subtitleColor(color) {
+    this.setNativeProps({ subtitleColor: color });
+  }
+
+  subtitleFont(font) {
+    this.setNativeProps({ subtitleFont: font });
+  }
+
+  subtitleFontSize(size) {
+    this.setNativeProps({ subtitleFontSize: size });
+  }
+
+  subtitleFontBold(forceBold) {
+    this.setNativeProps({ subtitleFontBold: forceBold });
+  }
+
+  subtitleEncoding(encoding) {
+    this.setNativeProps({ subtitleEncoding: encoding });
+  }
+
+  subtitleDelay(delay) {
+    this.setNativeProps({ subtitleDelay: delay });
+  }
+
+  audioChannel(channel) {
+    this.setNativeProps({ audioChannel: channel });
+  }
+
+  audioDelay(delay) {
+    this.setNativeProps({ audioDelay: delay });
   }
 
   autoAspectRatio(isAuto) {
@@ -55,11 +128,32 @@ export default class VLCPlayer extends Component {
     this.setNativeProps({ videoAspectRatio: ratio });
   }
 
+  contrast(contrast) {
+    this.setNativeProps({ contrast: contrast });
+  }
+
+  brightness(brightness) {
+    this.setNativeProps({ brightness: brightness });
+  }
+
+  hue(hue) {
+    this.setNativeProps({ hue: hue });
+  }
+
+  saturation(saturation) {
+    this.setNativeProps({ saturation: saturation });
+  }
+
+  gamma(gamma) {
+    this.setNativeProps({ gamma: gamma });
+  }
+
   _assignRoot(component) {
     this._root = component;
   }
 
   _onBuffering(event) {
+    // console.log(447,"in VLC")
     if (this.props.onBuffering) {
       this.props.onBuffering(event.nativeEvent);
     }
@@ -84,6 +178,7 @@ export default class VLCPlayer extends Component {
   }
 
   _onProgress(event) {
+    // console.log(447,"in VLC")
     if (this.props.onProgress) {
       this.props.onProgress(event.nativeEvent);
     }
@@ -119,8 +214,28 @@ export default class VLCPlayer extends Component {
       this.props.onLoad(event.nativeEvent);
     }
   }
+  _onSnapshotCapture(event) {
+    if (this.props.onLoad) {
+      this.props.onSnapshotCapture(event.nativeEvent);
+    }
+  }
+
+  _onVideoRecorded(event) {
+    if (this.props.onLoad) {
+      this.props.onVideoRecorded(event.nativeEvent);
+    }
+  }
+
+
+  _onRecordingStart(event) {
+    if (this.props.onLoad) {
+      this.props.onRecordingStart(event.nativeEvent);
+    }
+  }
+
 
   render() {
+    // console.log(530,"in vlc props",this.props)
     /* const {
      source
      } = this.props;*/
@@ -142,10 +257,11 @@ export default class VLCPlayer extends Component {
       isNetwork = false;
     }
     source.isNetwork = isNetwork;
+    source.jumpBackwardDuration = this.props.jumpBackwardDuration;
     source.autoplay = this.props.autoplay;
     source.initOptions = source.initOptions || [];
     //repeat the input media
-    source.initOptions.push("--input-repeat=1000");
+    // source.initOptions.push("input-repeat=1000");
     const nativeProps = Object.assign({}, this.props);
     Object.assign(nativeProps, {
       style: [styles.base, nativeProps.style],
@@ -169,9 +285,11 @@ export default class VLCPlayer extends Component {
       onVideoStopped: this._onStopped,
       onVideoBuffering: this._onBuffering,
       onVideoLoad: this._onLoad,
+      onSnapshotCapture: this._onSnapshotCapture,
+      onVideoRecorded: this._onVideoRecorded,
       progressUpdateInterval: this.props.onProgress ? 250 : 0,
     });
-
+    // console.log(535,nativeProps)
     return <RCTVLCPlayer ref={this._assignRoot} {...nativeProps} />;
   }
 }
@@ -182,8 +300,15 @@ VLCPlayer.propTypes = {
   seek: PropTypes.number,
   resume: PropTypes.bool,
   snapshotPath: PropTypes.string,
+  startRecordingAtPath: PropTypes.string,
+  stopRecording: PropTypes.bool,
   paused: PropTypes.bool,
-
+  jumpForwardDuration: PropTypes.string,
+  jumpBackwardDuration: PropTypes.string,
+  subtitleColor: PropTypes.string,
+  subtitleFont: PropTypes.string,
+  subtitleFontSize: PropTypes.string,
+  subtitleFontBold: PropTypes.bool,
   autoAspectRatio: PropTypes.bool,
   videoAspectRatio: PropTypes.string,
   volume: PropTypes.number,
@@ -212,7 +337,6 @@ VLCPlayer.propTypes = {
   /* Wrapper component */
   source: PropTypes.oneOfType([PropTypes.object, PropTypes.number]),
   subtitleUri: PropTypes.string,
-  autoplay: PropTypes.bool,
 
   onError: PropTypes.func,
   onProgress: PropTypes.func,
@@ -235,4 +359,5 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 });
+// @ts-ignore
 const RCTVLCPlayer = requireNativeComponent("RCTVLCPlayer", VLCPlayer);
