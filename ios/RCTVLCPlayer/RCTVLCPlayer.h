@@ -1,7 +1,7 @@
 #import <React/RCTView.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <AVKit/AVKit.h>
-#import "MobileVLCKit/MobileVLCKit.h"
+#import "VLCKit/VLCKit.h"
 @class RCTEventDispatcher;
 
 @interface RCTVLCPlayer : UIView <VLCMediaListPlayerDelegate,VLCMediaPlayerDelegate>

@@ -10,7 +10,7 @@
 #if TARGET_OS_TV
 #import <TVVLCKit/TVVLCKit.h>
 #else
-#import <MobileVLCKit/MobileVLCKit.h>
+#import <VLCKit/VLCKit.h>
 #endif
 #import <AVFoundation/AVFoundation.h>
 static NSString *const statusKeyPath = @"status";
