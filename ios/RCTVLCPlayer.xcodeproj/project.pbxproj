@@ -10,6 +10,7 @@
 		0C1A0ECA1D07E18700441684 /* RCTVLCPlayerManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 0C1A0EC81D07E18700441684 /* RCTVLCPlayerManager.m */; };
 		0CA30C481D07E0DB003B09F9 /* RCTVLCPlayer.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0CA30C471D07E0DB003B09F9 /* RCTVLCPlayer.h */; };
 		0CA30C4A1D07E0DB003B09F9 /* RCTVLCPlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = 0CA30C491D07E0DB003B09F9 /* RCTVLCPlayer.m */; };
+		37E988DF2E3A1DB700D6CC1C /* VLCKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 37E988DE2E3A1DB700D6CC1C /* VLCKit.framework */; platformFilter = ios; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -31,6 +32,7 @@
 		0CA30C441D07E0DB003B09F9 /* libRCTVLCPlayer.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRCTVLCPlayer.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CA30C471D07E0DB003B09F9 /* RCTVLCPlayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RCTVLCPlayer.h; sourceTree = "<group>"; };
 		0CA30C491D07E0DB003B09F9 /* RCTVLCPlayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RCTVLCPlayer.m; sourceTree = "<group>"; };
+		37E988DE2E3A1DB700D6CC1C /* VLCKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = VLCKit.framework; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -38,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				37E988DF2E3A1DB700D6CC1C /* VLCKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -63,6 +66,7 @@
 		0CA30C461D07E0DB003B09F9 /* RCTVLCPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				37E988DE2E3A1DB700D6CC1C /* VLCKit.framework */,
 				0C1A0EC81D07E18700441684 /* RCTVLCPlayerManager.m */,
 				0C1A0EC91D07E18700441684 /* RCTVLCPlayerManager.h */,
 				0CA30C471D07E0DB003B09F9 /* RCTVLCPlayer.h */,
@@ -226,6 +230,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(SRCROOT)/../../../vlcKit",
 					"\"$(SRCROOT)/../../../ios/Pods/MobileVLCKit-unstable/MobileVLCKit-binary\"",
+					"$(PROJECT_DIR)/**",
 				);
 				HEADER_SEARCH_PATHS = (
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
@@ -248,6 +253,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(SRCROOT)/../../../vlcKit",
 					"\"$(SRCROOT)/../../../ios/Pods/MobileVLCKit-unstable/MobileVLCKit-binary\"",
+					"$(PROJECT_DIR)/**",
 				);
 				HEADER_SEARCH_PATHS = (
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
