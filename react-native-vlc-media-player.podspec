@@ -7,7 +7,7 @@ Pod::Spec.new do |s|
   s.license      = 'MIT'
   s.homepage     = 'https://github.com/razorRun/react-native-vlc-media-player.git'
   s.source       = { :git => "https://github.com/razorRun/react-native-vlc-media-player.git" }
-  s.source_files = 'ios/RCTVLCPlayer/*'
+  s.source_files = 'ios/RCTVLCPlayer/*.{framework,h,m,swift}'
   s.ios.deployment_target = "8.4"
   s.tvos.deployment_target = "10.2"
   s.static_framework = true
