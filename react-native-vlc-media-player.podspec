@@ -14,4 +14,5 @@ Pod::Spec.new do |s|
   s.dependency 'React'
   # s.ios.dependency 'MobileVLCKit', '3.6.0'
   s.tvos.dependency 'TVVLCKit', '3.5.1'
+  s.vendored_frameworks = 'VLCKit.framework'
 end
